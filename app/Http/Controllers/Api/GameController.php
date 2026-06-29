@@ -522,7 +522,7 @@ class GameController extends Controller
 
             $matchCount = $this->edgeMatchCount($colors, $occupied[$neighbourIndex], $side);
 
-            if ($matchCount === 0) {
+            if ($matchCount !== 2) {
                 return [
                     'valid' => false,
                     'message' => 'COLOR MISMATCH',
