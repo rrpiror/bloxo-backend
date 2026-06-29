@@ -1,3 +1,19 @@
+## Bloxo Backend
+
+### DigitalOcean App Platform
+
+Use these service commands:
+
+- Build Command: `npm ci && npm run build`
+- Run Command: `heroku-php-apache2 public/`
+
+After changing production environment variables or creating a fresh database,
+run migrations from the DigitalOcean app console:
+
+```bash
+php artisan migrate --force
+```
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">
