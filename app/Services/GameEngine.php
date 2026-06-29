@@ -156,7 +156,7 @@ class GameEngine
             ]);
 
             if (empty($deck) && $this->tileCount($player->fresh()) === 0 && $this->tileCount($opponent->fresh()) === 0) {
-                $winnerText = $player->fresh()->score >= $opponent->fresh()->score ? 'MISSION SUCCESS' : 'MISSION FAILED';
+                $winnerText = $player->fresh()->score >= $opponent->fresh()->score ? 'YOU WIN' : 'YOU LOSE';
                 $game->update([
                     'status' => 'finished',
                     'winner_text' => $winnerText,
