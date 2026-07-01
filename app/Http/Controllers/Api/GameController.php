@@ -154,6 +154,24 @@ class GameController extends Controller
         ]);
     }
 
+    public function destroy(Game $game, Request $request)
+    {
+        $user = $request->user();
+
+        $player = $game->players()->where('user_id', $user->id)->first();
+        if (! $player) {
+            return response()->json([
+                'message' => 'You are not part of this game.',
+            ], 403);
+        }
+
+        $game->delete();
+
+        return response()->json([
+            'message' => 'Game removed',
+        ]);
+    }
+
     protected function serializeGame(Game $game): array
     {
         $totalCells = 40 * 40;

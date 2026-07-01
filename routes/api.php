@@ -17,6 +17,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/games', [GameController::class, 'store']);
     Route::post('/games/join', [GameController::class, 'join']);
     Route::get('/games/{game}', [GameController::class, 'show']);
+    Route::delete('/games/{game}', [GameController::class, 'destroy']);
     Route::post('/games/{game}/moves', [GameController::class, 'move']);
     Route::post('/games/{game}/pass', [GameController::class, 'pass']);
 
