@@ -9,7 +9,9 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
+    Route::get('/profile', [AuthController::class, 'profile']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::delete('/account', [AuthController::class, 'destroy']);
     Route::get('/games/active', [GameController::class, 'activeGames']);
 
     Route::post('/games', [GameController::class, 'store']);
