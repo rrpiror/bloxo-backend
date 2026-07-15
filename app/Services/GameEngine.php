@@ -21,7 +21,7 @@ class GameEngine
         return DB::transaction(function () use ($host) {
             $deck = $this->createShuffledDeck();
             $discard = [$this->draw($deck)];
-            $starterCode = $this->draw($deck);
+            $starterCode = $this->drawStarterTile($deck);
 
             $game = Game::create([
                 'invite_code' => strtoupper(Str::random(6)),
@@ -189,7 +189,7 @@ class GameEngine
             $hasAdjacent = true;
             $nc = $neighbor->colors;
             if ($colors[$item['a'][0]] !== $nc[$item['n'][0]] || $colors[$item['a'][1]] !== $nc[$item['n'][1]]) {
-                return ['valid' => false, 'message' => 'Color mismatch.'];
+                return ['valid' => false, 'message' => 'Colour mismatch.'];
             }
         }
 
@@ -298,6 +298,29 @@ class GameEngine
     private function draw(array &$deck): string
     {
         return array_pop($deck);
+    }
+
+    private function drawStarterTile(array &$deck): string
+    {
+        $candidates = array_values(array_filter(
+            array_keys($deck),
+            fn ($index) => ! $this->isMonoTile($deck[$index])
+        ));
+
+        if (empty($candidates)) {
+            return $this->draw($deck);
+        }
+
+        $index = $candidates[array_rand($candidates)];
+        $tile = $deck[$index];
+        array_splice($deck, $index, 1);
+
+        return $tile;
+    }
+
+    private function isMonoTile(string $colors): bool
+    {
+        return strlen($colors) === 4 && count(array_unique(str_split($colors))) === 1;
     }
 
     private function drawHand(array &$deck, string $prefix): array

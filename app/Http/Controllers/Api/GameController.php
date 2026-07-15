@@ -20,7 +20,7 @@ class GameController extends Controller
             $deck = $this->createShuffledDeck();
 
             $discardPile = [array_pop($deck)];
-            $starterColors = array_pop($deck);
+            $starterColors = $this->drawStarterTile($deck);
 
             $game = Game::create([
                 'invite_code' => $this->generateInviteCode(),
@@ -244,6 +244,29 @@ class GameController extends Controller
         return $deck;
     }
 
+    protected function drawStarterTile(array &$deck): string
+    {
+        $candidates = array_values(array_filter(
+            array_keys($deck),
+            fn ($index) => ! $this->isMonoTile($deck[$index])
+        ));
+
+        if (empty($candidates)) {
+            return array_pop($deck);
+        }
+
+        $index = $candidates[array_rand($candidates)];
+        $tile = $deck[$index];
+        array_splice($deck, $index, 1);
+
+        return $tile;
+    }
+
+    protected function isMonoTile(string $colors): bool
+    {
+        return strlen($colors) === 4 && count(array_unique(str_split($colors))) === 1;
+    }
+
     public function move(Game $game, Request $request)
     {
         $data = $request->validate([
@@ -353,9 +376,12 @@ class GameController extends Controller
                 'deck' => array_values($deck),
                 'status' => 'active',
                 'current_player_id' => $opponent->id,
-                'winner_text' => $this->resolveWinnerText($game),
             ]);
 
+            $game->refresh()->load(['players.user', 'cells']);
+            $game->update([
+                'winner_text' => $this->resolveWinnerText($game),
+            ]);
             $game->refresh()->load(['players.user', 'cells']);
 
             return response()->json([
@@ -397,7 +423,7 @@ class GameController extends Controller
             }
 
             $hand = $player->hand ?? [];
-            if (empty($hand)) {
+            if ($this->handTileCount($player) === 0) {
                 return response()->json([
                     'message' => 'No tile available to discard.',
                 ], 422);
@@ -410,7 +436,13 @@ class GameController extends Controller
             }
 
             if ($tileIndex === -1) {
-                $tileIndex = 0;
+                $tileIndex = $this->findFirstTileIndexInHand($hand);
+            }
+
+            if ($tileIndex === -1 || empty($hand[$tileIndex])) {
+                return response()->json([
+                    'message' => 'No tile available to discard.',
+                ], 422);
             }
 
             $discarded = $hand[$tileIndex];
@@ -435,9 +467,12 @@ class GameController extends Controller
                 'discard_pile' => array_values($discardPile),
                 'status' => 'active',
                 'current_player_id' => $opponent->id,
-                'winner_text' => $this->resolveWinnerText($game),
             ]);
 
+            $game->refresh()->load(['players.user', 'cells']);
+            $game->update([
+                'winner_text' => $this->resolveWinnerText($game),
+            ]);
             $game->refresh()->load(['players.user', 'cells']);
 
             return response()->json([
@@ -450,6 +485,17 @@ class GameController extends Controller
     {
         foreach ($hand as $index => $tile) {
             if (($tile['id'] ?? null) === $tileId) {
+                return $index;
+            }
+        }
+
+        return -1;
+    }
+
+    protected function findFirstTileIndexInHand(array $hand): int
+    {
+        foreach ($hand as $index => $tile) {
+            if (! empty($tile)) {
                 return $index;
             }
         }
@@ -543,7 +589,7 @@ class GameController extends Controller
             if ($matchCount !== 2) {
                 return [
                     'valid' => false,
-                    'message' => 'COLOR MISMATCH',
+                    'message' => 'COLOUR MISMATCH',
                 ];
             }
         }
@@ -754,8 +800,8 @@ class GameController extends Controller
         }
 
         $deckEmpty = empty($game->deck ?? []);
-        $p1HandEmpty = empty($p1->hand ?? []);
-        $p2HandEmpty = empty($p2->hand ?? []);
+        $p1HandEmpty = $this->handTileCount($p1) === 0;
+        $p2HandEmpty = $this->handTileCount($p2) === 0;
 
         if (! $deckEmpty) {
             return null;
@@ -825,6 +871,11 @@ class GameController extends Controller
         }
 
         return false;
+    }
+
+    protected function handTileCount(GamePlayer $player): int
+    {
+        return collect($player->hand ?? [])->filter()->count();
     }
 
     public function activeGames(Request $request)
