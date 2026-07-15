@@ -39,6 +39,38 @@
 }
 
 @layer components {
+    .marketing-navbar {
+        @apply sticky top-0 z-50 bg-[#202020] px-5 text-white;
+    }
+
+    .marketing-navbar-inner {
+        @apply mx-auto grid min-h-[74px] max-w-[1180px] grid-cols-1 items-center gap-4 py-4 md:grid-cols-[1fr_auto_1fr] md:py-0;
+    }
+
+    .marketing-navbar-links {
+        @apply flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] font-semibold md:justify-start;
+    }
+
+    .marketing-navbar-link {
+        @apply text-white/90 hover:text-white;
+    }
+
+    .marketing-navbar-link.is-active {
+        @apply underline decoration-white underline-offset-4;
+    }
+
+    .marketing-navbar-logo {
+        @apply flex justify-center;
+    }
+
+    .marketing-navbar-logo img {
+        @apply h-8 w-auto object-contain;
+    }
+
+    .marketing-navbar-cta {
+        @apply inline-flex min-h-[38px] items-center justify-center justify-self-center border border-white/30 px-5 text-center text-[13px] font-semibold text-white hover:border-white hover:bg-white hover:text-neutral-950 md:justify-self-end;
+    }
+
     .marketing-button {
         @apply inline-flex min-h-[38px] min-w-[114px] items-center justify-center bg-neutral-950 px-6 text-[13px] font-medium text-white hover:-translate-y-0.5 hover:opacity-90;
     }

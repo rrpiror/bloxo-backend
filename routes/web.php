@@ -5,12 +5,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
-});
+})->name('home');
 
 Route::get('/scorer', function () {
     return view('scorer');
 })->name('scorer');
 
+Route::view('/learn-to-play', 'pages.learn-to-play')->name('learn-to-play');
 Route::view('/refund-policy', 'pages.policy', ['title' => 'Refund policy'])->name('refund-policy');
 Route::view('/privacy-policy', 'pages.policy', ['title' => 'Privacy policy'])->name('privacy-policy');
 Route::view('/terms-of-service', 'pages.policy', ['title' => 'Terms of service'])->name('terms-of-service');

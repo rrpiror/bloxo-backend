@@ -24,6 +24,8 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body>
+        <x-marketing.navbar />
+
         {{ $slot }}
     </body>
 </html>
