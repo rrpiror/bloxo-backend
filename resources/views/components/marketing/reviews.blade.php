@@ -169,7 +169,7 @@
                                     <div class="text-xl tracking-[0.08em]">{{ $stars($review['rating']) }}</div>
                                     <div class="mt-3 flex items-center gap-2">
                                         
-                                        <span class="font-medium>{{ $review['author'] }}</span>
+                                        <span class="font-medium">{{ $review['author'] }}</span>
                                         {{-- @if ($review['verified'])
                                             <span class="verified-badge">Verified</span>
                                         @endif --}}
