@@ -8,15 +8,25 @@
 </head>
 <body class="bg-black text-white antialiased">
     <header class="relative flex items-center justify-center px-6 py-5">
-        <button
-            id="restartGameBtn"
-            class="absolute left-5 hidden h-11 w-11 items-center justify-center rounded-2xl border border-white/25 bg-[#111111] text-lg font-black text-white transition hover:border-white"
-            type="button"
-            onclick="restartGame()"
-            aria-label="Restart scorer"
-        >
-            ↻
-        </button>
+        <div class="absolute left-5 flex items-center gap-2">
+            <a
+                class="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/25 bg-[#111111] text-2xl font-black text-white transition hover:border-white"
+                href="{{ route('home') }}"
+                aria-label="Back to home"
+            >
+                ‹
+            </a>
+
+            <button
+                id="restartGameBtn"
+                class="hidden h-11 w-11 items-center justify-center rounded-2xl border border-white/25 bg-[#111111] text-lg font-black text-white transition hover:border-white"
+                type="button"
+                onclick="restartGame()"
+                aria-label="Restart scorer"
+            >
+                ↻
+            </button>
+        </div>
 
         <img src="{{ asset('images/bloxo_logo.png') }}" alt="Bloxo" class="h-12 w-auto object-contain">
 
@@ -109,7 +119,7 @@
             const name = input.value.trim();
             if (!name) return;
 
-            players.push({
+            players.unshift({
                 id: Date.now() + Math.random(),
                 name,
                 score: 0,
@@ -177,7 +187,7 @@
                 row.innerHTML = `
                     <div class="flex items-center gap-4">
                         <div class="min-w-0 flex-1">
-                            <h2 class="truncate text-xl font-extrabold">${escapeHtml(player.name)}</h2>
+                            <h2 class="truncate text-xl font-extrabold text-white">${escapeHtml(player.name)}</h2>
                         </div>
                         <div class="text-5xl font-black leading-none">${player.score}</div>
                         <button
