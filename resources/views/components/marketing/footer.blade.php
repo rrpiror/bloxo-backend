@@ -1,6 +1,6 @@
 @php
     $links = [
-        ['label' => 'Refund policy', 'url' => route('refund-policy')],
+        ['label' => 'Returns policy', 'url' => route('refund-policy')],
         ['label' => 'Privacy policy', 'url' => route('privacy-policy')],
         ['label' => 'Terms of service', 'url' => route('terms-of-service')],
         ['label' => 'Contact information', 'url' => route('contact-information')],

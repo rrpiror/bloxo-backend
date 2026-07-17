@@ -122,4 +122,28 @@
     .marketing-page-content {
         @apply mx-auto max-w-[1180px] px-5 py-24;
     }
+
+    .policy-page-content {
+        @apply max-w-[820px];
+    }
+
+    .policy-intro {
+        @apply mt-6 text-[17px] leading-8 text-neutral-700;
+    }
+
+    .policy-section-list {
+        @apply mt-12 space-y-10;
+    }
+
+    .policy-section {
+        @apply border-t border-neutral-200 pt-8;
+    }
+
+    .policy-section h2 {
+        @apply text-[22px] leading-tight;
+    }
+
+    .policy-section p {
+        @apply mt-4 text-neutral-700;
+    }
 }
