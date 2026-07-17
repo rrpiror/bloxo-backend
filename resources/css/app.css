@@ -48,7 +48,7 @@
     }
 
     .marketing-navbar-links {
-        @apply flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] font-semibold md:justify-start;
+        @apply order-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] font-semibold md:order-none md:justify-start;
     }
 
     .marketing-navbar-link {
@@ -60,7 +60,7 @@
     }
 
     .marketing-navbar-logo {
-        @apply flex justify-center;
+        @apply order-1 flex justify-center md:order-none;
     }
 
     .marketing-navbar-logo img {
@@ -68,7 +68,7 @@
     }
 
     .marketing-navbar-cta {
-        @apply inline-flex min-h-[38px] items-center justify-center justify-self-center border border-white/30 px-5 text-center text-[13px] font-semibold text-white hover:border-white hover:bg-white hover:text-neutral-950 md:justify-self-end;
+        @apply order-3 inline-flex min-h-[38px] items-center justify-center justify-self-center border border-white/30 px-5 text-center text-[13px] font-semibold text-white hover:border-white hover:bg-white hover:text-neutral-950 md:order-none md:justify-self-end;
     }
 
     .marketing-button {
