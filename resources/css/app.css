@@ -146,4 +146,60 @@
     .policy-section p {
         @apply mt-4 text-neutral-700;
     }
+
+    .learn-page-content {
+        @apply mx-auto max-w-[820px] px-5 pb-12 pt-20;
+    }
+
+    .learn-page-intro p:not(.marketing-overline) {
+        @apply mt-6 text-[17px] leading-8 text-neutral-700;
+    }
+
+    .learn-section-list {
+        @apply mt-16 space-y-14;
+    }
+
+    .learn-section h2 {
+        @apply text-[24px] leading-tight;
+    }
+
+    .learn-section p {
+        @apply mt-5 text-[15px] leading-7 text-neutral-700;
+    }
+
+    .learn-section p + p {
+        @apply mt-2;
+    }
+
+    .learn-setup-list {
+        @apply mt-8 space-y-1 text-[15px] font-extrabold leading-7 text-neutral-700;
+    }
+
+    .learn-rules-section {
+        @apply bg-white px-5 pb-24 pt-8;
+    }
+
+    .learn-rules-inner {
+        @apply mx-auto max-w-[920px];
+    }
+
+    .learn-rule-list {
+        @apply mt-16 space-y-20 md:space-y-16;
+    }
+
+    .learn-rule {
+        @apply grid items-center gap-8 md:grid-cols-[390px_minmax(0,360px)] md:gap-16;
+    }
+
+    .learn-rule-image {
+        @apply w-full max-w-[360px] justify-self-center md:max-w-none;
+    }
+
+    .learn-rule-copy h3 {
+        @apply max-w-[360px];
+    }
+
+    .learn-rule-copy p {
+        @apply mt-5 max-w-[370px] text-neutral-700;
+    }
 }
