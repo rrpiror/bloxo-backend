@@ -24,7 +24,7 @@ class GameControllerPlacementTest extends TestCase
         $result = $method->invoke($controller, $cells, 821, 'BRGY');
 
         $this->assertFalse($result['valid']);
-        $this->assertSame('COLOR MISMATCH', $result['message']);
+        $this->assertSame('COLOUR MISMATCH', $result['message']);
     }
 
     public function test_it_accepts_an_edge_when_both_symbols_match(): void

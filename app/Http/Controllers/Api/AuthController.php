@@ -118,8 +118,33 @@ class AuthController extends Controller
 
         return response()->json([
             'user' => $user,
+            'can_edit_name' => ! $this->hasActiveGames($user),
             'stats' => $stats,
             'games' => $history,
+        ]);
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:32'],
+        ]);
+
+        if ($data['name'] !== $user->name && $this->hasActiveGames($user)) {
+            return response()->json([
+                'message' => 'You cannot change your name while you have active games.',
+            ], 422);
+        }
+
+        $user->update([
+            'name' => $data['name'],
+        ]);
+
+        return response()->json([
+            'user' => $user->fresh(),
+            'can_edit_name' => ! $this->hasActiveGames($user),
         ]);
     }
 
@@ -144,5 +169,15 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Account deleted',
         ]);
+    }
+
+    private function hasActiveGames(User $user): bool
+    {
+        return Game::query()
+            ->whereIn('status', ['waiting', 'active'])
+            ->whereHas('players', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->exists();
     }
 }
