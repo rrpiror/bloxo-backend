@@ -191,7 +191,8 @@ class AuthController extends Controller
     private function hasActiveGames(User $user): bool
     {
         return Game::query()
-            ->whereIn('status', ['waiting', 'active'])
+            ->where('status', 'active')
+            ->whereNull('winner_text')
             ->whereHas('players', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             })
