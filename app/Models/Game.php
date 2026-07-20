@@ -10,6 +10,7 @@ class Game extends Model
         'invite_code',
         'status',
         'current_player_id',
+        'max_players',
         'deck',
         'discard_pile',
         'winner_text',

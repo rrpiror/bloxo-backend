@@ -14,54 +14,30 @@ class GameController extends Controller
 {
     public function store(Request $request)
     {
+        $data = $request->validate([
+            'max_players' => ['nullable', 'integer', 'min:2', 'max:4'],
+        ]);
+
         $user = $request->user();
+        $maxPlayers = (int) ($data['max_players'] ?? 2);
 
-        return DB::transaction(function () use ($user) {
-            $deck = $this->createShuffledDeck();
-
-            $discardPile = [array_pop($deck)];
-            $starterColors = $this->drawStarterTile($deck);
-
+        return DB::transaction(function () use ($user, $maxPlayers) {
             $game = Game::create([
                 'invite_code' => $this->generateInviteCode(),
                 'status' => 'waiting',
                 'current_player_id' => 0,
-                'deck' => $deck,
-                'discard_pile' => $discardPile,
+                'max_players' => $maxPlayers,
+                'deck' => [],
+                'discard_pile' => [],
                 'winner_text' => null,
             ]);
 
-            $hand = [];
-            for ($i = 0; $i < 6; $i++) {
-                $hand[] = [
-                    'id' => 'p1_' . ($i + 1),
-                    'colors' => array_pop($deck),
-                    'locked' => false,
-                ];
-            }
-
-            $game->update([
-                'deck' => $deck,
-            ]);
-
-            $playerOne = GamePlayer::create([
+            GamePlayer::create([
                 'game_id' => $game->id,
                 'user_id' => $user->id,
                 'seat' => 1,
                 'score' => 0,
-                'hand' => $hand,
-            ]);
-
-            $game->update([
-                'current_player_id' => $playerOne->id,
-            ]);
-
-            GameCell::create([
-                'game_id' => $game->id,
-                'board_index' => 820,
-                'tile_id' => 'starter',
-                'colors' => $starterColors,
-                'locked' => true,
+                'hand' => [],
             ]);
 
             $game->load(['players.user', 'cells']);
@@ -98,37 +74,108 @@ class GameController extends Controller
                 ]);
             }
 
-            if ($game->players->count() >= 2) {
+            $maxPlayers = (int) ($game->max_players ?? 2);
+
+            if ($game->players->count() >= $maxPlayers) {
                 return response()->json([
-                    'message' => 'Game already has two players.',
+                    'message' => 'Game is full.',
                 ], 422);
             }
 
-            $deck = $game->deck ?? [];
-            $hand = [];
-
-            for ($i = 0; $i < 6; $i++) {
-                $hand[] = [
-                    'id' => 'p2_' . ($i + 1),
-                    'colors' => array_pop($deck),
-                    'locked' => false,
-                ];
-            }
+            $takenSeats = $game->players->pluck('seat')->map(fn ($seat) => (int) $seat)->all();
+            $seat = collect(range(1, $maxPlayers))
+                ->first(fn ($candidate) => ! in_array($candidate, $takenSeats, true));
 
             GamePlayer::create([
                 'game_id' => $game->id,
                 'user_id' => $user->id,
-                'seat' => 2,
+                'seat' => $seat,
                 'score' => 0,
-                'hand' => $hand,
-            ]);
-
-            $game->update([
-                'status' => 'active',
-                'deck' => $deck,
+                'hand' => [],
             ]);
 
             $game->load(['players.user', 'cells']);
+
+            return response()->json([
+                'game' => $this->serializeGame($game),
+            ]);
+        });
+    }
+
+    public function start(Game $game, Request $request)
+    {
+        $user = $request->user();
+
+        return DB::transaction(function () use ($game, $user) {
+            $game->load(['players.user', 'cells']);
+
+            if ($game->status !== 'waiting') {
+                return response()->json([
+                    'message' => 'Game has already started.',
+                ], 422);
+            }
+
+            $host = $game->players->firstWhere('seat', 1);
+            if (! $host || (int) $host->user_id !== (int) $user->id) {
+                return response()->json([
+                    'message' => 'Only the game creator can start the game.',
+                ], 403);
+            }
+
+            $players = $game->players->sortBy('seat')->values();
+            $playerCount = $players->count();
+
+            if ($playerCount < 2) {
+                return response()->json([
+                    'message' => 'At least two players are needed to start.',
+                ], 422);
+            }
+
+            if ($playerCount > 4) {
+                return response()->json([
+                    'message' => 'Bloxo supports up to four players.',
+                ], 422);
+            }
+
+            $deck = $this->createShuffledDeck();
+            $discardPile = [];
+
+            for ($i = 0; $i < $this->discardCountForPlayerCount($playerCount); $i++) {
+                if (! empty($deck)) {
+                    $discardPile[] = array_pop($deck);
+                }
+            }
+
+            $game->cells()->delete();
+
+            foreach ($players as $player) {
+                $player->update([
+                    'score' => 0,
+                    'hand' => $this->drawStartingHand($deck, 'p' . $player->seat),
+                ]);
+            }
+
+            $starterColors = $this->drawStarterTile($deck);
+
+            GameCell::create([
+                'game_id' => $game->id,
+                'board_index' => 820,
+                'tile_id' => 'starter',
+                'colors' => $starterColors,
+                'locked' => true,
+            ]);
+
+            $startingPlayer = $players->random();
+
+            $game->update([
+                'status' => 'active',
+                'current_player_id' => $startingPlayer->id,
+                'deck' => array_values($deck),
+                'discard_pile' => array_values($discardPile),
+                'winner_text' => null,
+            ]);
+
+            $game->refresh()->load(['players.user', 'cells']);
 
             return response()->json([
                 'game' => $this->serializeGame($game),
@@ -190,11 +237,12 @@ class GameController extends Controller
             'invite_code' => $game->invite_code,
             'status' => $game->status,
             'current_player_id' => $game->current_player_id,
+            'max_players' => (int) ($game->max_players ?? 2),
             'winner_text' => $game->winner_text,
             'deck_count' => count($game->deck ?? []),
             'discard_pile' => $game->discard_pile ?? [],
             'board' => $board,
-            'players' => $game->players->map(function ($player) {
+            'players' => $game->players->sortBy('seat')->map(function ($player) {
                 return [
                     'id' => $player->id,
                     'user_id' => $player->user_id,
@@ -267,6 +315,31 @@ class GameController extends Controller
         return strlen($colors) === 4 && count(array_unique(str_split($colors))) === 1;
     }
 
+    protected function discardCountForPlayerCount(int $playerCount): int
+    {
+        return match ($playerCount) {
+            2 => 1,
+            3 => 0,
+            4 => 3,
+            default => 0,
+        };
+    }
+
+    protected function drawStartingHand(array &$deck, string $prefix): array
+    {
+        $hand = [];
+
+        for ($i = 0; $i < 6; $i++) {
+            $hand[] = [
+                'id' => $prefix . '_' . ($i + 1),
+                'colors' => array_pop($deck),
+                'locked' => false,
+            ];
+        }
+
+        return $hand;
+    }
+
     public function move(Game $game, Request $request)
     {
         $data = $request->validate([
@@ -280,7 +353,7 @@ class GameController extends Controller
         return DB::transaction(function () use ($game, $user, $data) {
             $game->load(['players.user', 'cells']);
 
-            if ($game->status !== 'active' && $game->status !== 'waiting') {
+            if ($game->status !== 'active') {
                 return response()->json([
                     'message' => 'Game is not active.',
                 ], 422);
@@ -299,10 +372,10 @@ class GameController extends Controller
                 ], 422);
             }
 
-            $opponent = $game->players->firstWhere('id', '!=', $player->id);
-            if (! $opponent) {
+            $nextPlayer = $this->nextPlayerAfter($game, $player);
+            if (! $nextPlayer) {
                 return response()->json([
-                    'message' => 'Waiting for opponent.',
+                    'message' => 'Waiting for more players.',
                 ], 422);
             }
 
@@ -364,7 +437,7 @@ class GameController extends Controller
             $this->drawTileIntoFirstEmptySlot(
                 $hand,
                 $deck,
-                $player->seat === 1 ? 'p1' : 'p2',
+                'p' . $player->seat,
             );
 
             $player->update([
@@ -375,7 +448,7 @@ class GameController extends Controller
             $game->update([
                 'deck' => array_values($deck),
                 'status' => 'active',
-                'current_player_id' => $opponent->id,
+                'current_player_id' => $nextPlayer->id,
             ]);
 
             $game->refresh()->load(['players.user', 'cells']);
@@ -402,6 +475,12 @@ class GameController extends Controller
         return DB::transaction(function () use ($game, $user, $data) {
             $game->load(['players.user', 'cells']);
 
+            if ($game->status !== 'active') {
+                return response()->json([
+                    'message' => 'Game is not active.',
+                ], 422);
+            }
+
             $player = $game->players->firstWhere('user_id', $user->id);
             if (! $player) {
                 return response()->json([
@@ -415,10 +494,10 @@ class GameController extends Controller
                 ], 422);
             }
 
-            $opponent = $game->players->firstWhere('id', '!=', $player->id);
-            if (! $opponent) {
+            $nextPlayer = $this->nextPlayerAfter($game, $player);
+            if (! $nextPlayer) {
                 return response()->json([
-                    'message' => 'Waiting for opponent.',
+                    'message' => 'Waiting for more players.',
                 ], 422);
             }
 
@@ -455,7 +534,7 @@ class GameController extends Controller
             $this->drawTileIntoFirstEmptySlot(
                 $hand,
                 $deck,
-                $player->seat === 1 ? 'p1' : 'p2',
+                'p' . $player->seat,
             );
 
             $player->update([
@@ -466,7 +545,7 @@ class GameController extends Controller
                 'deck' => array_values($deck),
                 'discard_pile' => array_values($discardPile),
                 'status' => 'active',
-                'current_player_id' => $opponent->id,
+                'current_player_id' => $nextPlayer->id,
             ]);
 
             $game->refresh()->load(['players.user', 'cells']);
@@ -792,39 +871,57 @@ class GameController extends Controller
     {
         $game->loadMissing(['players.user', 'cells']);
 
-        $p1 = $game->players->firstWhere('seat', 1);
-        $p2 = $game->players->firstWhere('seat', 2);
+        $players = $game->players->sortBy('seat')->values();
 
-        if (! $p1 || ! $p2) {
+        if ($players->count() < 2) {
             return null;
         }
 
         $deckEmpty = empty($game->deck ?? []);
-        $p1HandEmpty = $this->handTileCount($p1) === 0;
-        $p2HandEmpty = $this->handTileCount($p2) === 0;
 
         if (! $deckEmpty) {
             return null;
         }
 
-        $bothHandsEmpty = $p1HandEmpty && $p2HandEmpty;
+        $allHandsEmpty = $players->every(fn ($player) => $this->handTileCount($player) === 0);
 
-        $p1HasMove = ! $p1HandEmpty && $this->hasAnyValidMove($game, $p1);
-        $p2HasMove = ! $p2HandEmpty && $this->hasAnyValidMove($game, $p2);
+        $anyValidMove = $players->contains(function ($player) use ($game) {
+            return $this->handTileCount($player) > 0 && $this->hasAnyValidMove($game, $player);
+        });
 
-        if (! $bothHandsEmpty && ($p1HasMove || $p2HasMove)) {
+        if (! $allHandsEmpty && $anyValidMove) {
             return null;
         }
 
-        if ((int) $p1->score > (int) $p2->score) {
-            return ($p1->user?->name ?? 'Player 1') . ' wins';
+        $highestScore = $players->max(fn ($player) => (int) $player->score);
+        $winners = $players
+            ->filter(fn ($player) => (int) $player->score === $highestScore)
+            ->values();
+
+        if ($winners->count() > 1) {
+            return 'Draw';
         }
 
-        if ((int) $p2->score > (int) $p1->score) {
-            return ($p2->user?->name ?? 'Player 2') . ' wins';
+        $winner = $winners->first();
+
+        return ($winner->user?->name ?? 'Player ' . $winner->seat) . ' wins';
+    }
+
+    protected function nextPlayerAfter(Game $game, GamePlayer $player): ?GamePlayer
+    {
+        $players = $game->players->sortBy('seat')->values();
+
+        if ($players->count() < 2) {
+            return null;
         }
 
-        return 'Draw';
+        $currentIndex = $players->search(fn ($candidate) => (int) $candidate->id === (int) $player->id);
+
+        if ($currentIndex === false) {
+            return $players->first();
+        }
+
+        return $players[($currentIndex + 1) % $players->count()];
     }
 
     protected function hasAnyValidMove(Game $game, GamePlayer $player): bool
@@ -893,12 +990,17 @@ class GameController extends Controller
 
         $result = $games->map(function (Game $game) use ($user) {
             $me = $game->players->firstWhere('user_id', $user->id);
-            $opponent = $game->players->firstWhere('user_id', '!=', $user->id);
+            $opponents = $game->players
+                ->where('user_id', '!=', $user->id)
+                ->sortBy('seat')
+                ->values();
+            $opponent = $opponents->first();
 
             return [
                 'id' => $game->id,
                 'invite_code' => $game->invite_code,
                 'status' => $game->status,
+                'max_players' => (int) ($game->max_players ?? 2),
                 'winner_text' => $game->winner_text,
                 'updated_at' => optional($game->updated_at)?->toISOString(),
                 'is_your_turn' => $me ? (int) $game->current_player_id === (int) $me->id : false,
@@ -912,6 +1014,13 @@ class GameController extends Controller
                     'name' => $opponent?->user?->name ?? 'Waiting...',
                     'score' => $opponent?->score ?? 0,
                 ],
+                'players' => $game->players->sortBy('seat')->map(fn ($player) => [
+                    'id' => $player->id,
+                    'user_id' => $player->user_id,
+                    'seat' => $player->seat,
+                    'name' => $player->user?->name ?? 'Player',
+                    'score' => $player->score,
+                ])->values(),
             ];
         })->values();
 

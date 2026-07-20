@@ -79,20 +79,29 @@ class AuthController extends Controller
 
         $history = $games->map(function (Game $game) use ($user, &$stats) {
             $me = $game->players->firstWhere('user_id', $user->id);
-            $opponent = $game->players->firstWhere('user_id', '!=', $user->id);
+            $opponents = $game->players
+                ->where('user_id', '!=', $user->id)
+                ->sortBy('seat')
+                ->values();
+            $opponent = $opponents->first();
             $finished = $game->winner_text !== null;
             $result = 'active';
 
-            if ($finished && $me && $opponent) {
-                if ((int) $me->score > (int) $opponent->score) {
+            if ($finished && $me) {
+                $highestScore = $game->players->max(fn ($player) => (int) $player->score);
+                $topPlayers = $game->players
+                    ->filter(fn ($player) => (int) $player->score === $highestScore)
+                    ->values();
+
+                if ((int) $me->score === $highestScore && $topPlayers->count() === 1) {
                     $result = 'win';
                     $stats['wins']++;
-                } elseif ((int) $me->score < (int) $opponent->score) {
-                    $result = 'loss';
-                    $stats['losses']++;
-                } else {
+                } elseif ((int) $me->score === $highestScore) {
                     $result = 'draw';
                     $stats['draws']++;
+                } else {
+                    $result = 'loss';
+                    $stats['losses']++;
                 }
             }
 
@@ -100,6 +109,7 @@ class AuthController extends Controller
                 'id' => $game->id,
                 'invite_code' => $game->invite_code,
                 'status' => $game->status,
+                'max_players' => (int) ($game->max_players ?? 2),
                 'winner_text' => $game->winner_text,
                 'result' => $result,
                 'updated_at' => optional($game->updated_at)?->toISOString(),
@@ -113,6 +123,13 @@ class AuthController extends Controller
                     'name' => $opponent?->user?->name ?? 'Waiting...',
                     'score' => $opponent?->score ?? 0,
                 ],
+                'players' => $game->players->sortBy('seat')->map(fn ($player) => [
+                    'id' => $player->id,
+                    'user_id' => $player->user_id,
+                    'seat' => $player->seat,
+                    'name' => $player->user?->name ?? 'Player',
+                    'score' => $player->score,
+                ])->values(),
             ];
         })->values();
 
