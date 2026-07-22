@@ -30,7 +30,7 @@ class NovaServiceProvider extends ServiceProvider
         }
 
         \Laravel\Nova\Nova::auth(function ($request) {
-            return $request->user() !== null;
+            return $request->user()?->is_admin === true;
         });
     }
 

@@ -7,6 +7,7 @@ use Laravel\Nova\Fields\Email;
 use Laravel\Nova\Fields\HasMany;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Password;
+use Laravel\Nova\Fields\Boolean;
 use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Http\Requests\NovaRequest;
 use Laravel\Nova\Resource;
@@ -29,6 +30,7 @@ class User extends Resource
             ID::make()->sortable(),
             Text::make('Name')->sortable()->rules('required', 'max:255'),
             Email::make('Email')->sortable()->rules('required', 'email', 'max:255'),
+            Boolean::make('Admin', 'is_admin')->sortable(),
             Password::make('Password')->onlyOnForms()->creationRules('required', 'min:8')->updateRules('nullable', 'min:8'),
             DateTime::make('Created At')->exceptOnForms()->sortable(),
             HasMany::make('Game Players', 'gamePlayers', GamePlayer::class),
