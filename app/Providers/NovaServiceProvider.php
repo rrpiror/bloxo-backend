@@ -4,34 +4,43 @@ namespace App\Providers;
 
 use App\Models\ReportedUser;
 use App\Nova\Dashboards\SaasDashboard;
-use Illuminate\Support\ServiceProvider;
+use Laravel\Nova\Nova;
+use Laravel\Nova\NovaApplicationServiceProvider;
 
-class NovaServiceProvider extends ServiceProvider
+class NovaServiceProvider extends NovaApplicationServiceProvider
 {
     public function boot(): void
     {
+        parent::boot();
+
         if (! class_exists(\Laravel\Nova\Nova::class)) {
             return;
         }
 
-        \Laravel\Nova\Nova::resourcesIn(app_path('Nova/Resources'));
-        \Laravel\Nova\Nova::dashboards([
-            new SaasDashboard,
-        ]);
-
-        $this->gate();
         $this->menu();
     }
 
-    private function gate(): void
+    protected function authorization(): void
     {
         if (! class_exists(\Laravel\Nova\Nova::class)) {
             return;
         }
 
-        \Laravel\Nova\Nova::auth(function ($request) {
+        Nova::auth(function ($request) {
             return $request->user()?->is_admin === true;
         });
+    }
+
+    protected function dashboards(): array
+    {
+        return [
+            new SaasDashboard,
+        ];
+    }
+
+    protected function resources(): void
+    {
+        Nova::resourcesIn(app_path('Nova/Resources'));
     }
 
     private function menu(): void
@@ -40,7 +49,7 @@ class NovaServiceProvider extends ServiceProvider
             return;
         }
 
-        \Laravel\Nova\Nova::mainMenu(function () {
+        Nova::mainMenu(function () {
             $openReports = ReportedUser::query()->where('status', 'open')->count();
             $reportedUsersLabel = $openReports > 0
                 ? "Reported Users ({$openReports})"
