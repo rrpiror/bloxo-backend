@@ -12,7 +12,18 @@ class ReportedUser extends Model
         'game_id',
         'reason',
         'details',
+        'status',
+        'admin_notes',
+        'resolved_at',
+        'resolved_by',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'resolved_at' => 'datetime',
+        ];
+    }
 
     public function reporter()
     {
@@ -27,5 +38,10 @@ class ReportedUser extends Model
     public function game()
     {
         return $this->belongsTo(Game::class);
+    }
+
+    public function resolver()
+    {
+        return $this->belongsTo(User::class, 'resolved_by');
     }
 }

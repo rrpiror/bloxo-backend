@@ -29,4 +29,24 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function gamePlayers()
+    {
+        return $this->hasMany(GamePlayer::class);
+    }
+
+    public function reportedUsers()
+    {
+        return $this->hasMany(ReportedUser::class, 'reporter_id');
+    }
+
+    public function reportsAgainst()
+    {
+        return $this->hasMany(ReportedUser::class, 'reported_user_id');
+    }
+
+    public function resolvedReports()
+    {
+        return $this->hasMany(ReportedUser::class, 'resolved_by');
+    }
 }
