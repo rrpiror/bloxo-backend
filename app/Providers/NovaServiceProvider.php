@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use App\Models\ReportedUser;
-use App\Nova\Dashboards\SaasDashboard;
+use App\Nova\Dashboards\Main;
 use Laravel\Nova\Nova;
 use Laravel\Nova\NovaApplicationServiceProvider;
 
@@ -34,7 +34,7 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
     protected function dashboards(): array
     {
         return [
-            new SaasDashboard,
+            new Main,
         ];
     }
 
@@ -56,7 +56,7 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
                 : 'Reported Users';
 
             return [
-                \Laravel\Nova\Menu\MenuSection::dashboard(SaasDashboard::class)
+                \Laravel\Nova\Menu\MenuSection::dashboard(Main::class)
                     ->icon('chart-bar'),
                 \Laravel\Nova\Menu\MenuSection::resource(\App\Nova\Resources\User::class)
                     ->icon('users'),
